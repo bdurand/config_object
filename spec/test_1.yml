@@ -1,0 +1,13 @@
+item_1:
+  name: Item One
+  value: 5
+  
+item_2:
+  name: Item Two
+  complex: "Thing"
+  
+item_4:
+  name: Item Four
+
+defaults:
+  value: 1

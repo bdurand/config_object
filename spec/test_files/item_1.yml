@@ -1,0 +1,7 @@
+value: 8
+object:
+  name: object one
+  value: 14
+  object:
+    name: object two
+    value: 15

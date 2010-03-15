@@ -1,0 +1,7 @@
+item_2:
+  name: Item Too
+  value: 2
+  object: <%= Date.today.to_s %>
+  
+item_3:
+  name: Item Three
