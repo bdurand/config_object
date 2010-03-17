@@ -7,12 +7,12 @@ task :default => :test
 
 begin
   require 'spec/rake/spectask'
-  desc 'Test config_object.'
+  desc 'Run unit tests'
   Spec::Rake::SpecTask.new(:test) do |t|
     t.spec_files = FileList.new('spec/**/*_spec.rb')
   end
 rescue LoadError
-  tast :test do
+  task :test do
     STDERR.puts "You must have rspec >= 1.2.9 to run the tests"
   end
 end
