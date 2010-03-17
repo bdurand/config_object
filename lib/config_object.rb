@@ -2,9 +2,12 @@ require 'yaml'
 require 'erb'
 require 'pathname'
 
+# Classes that include ConfigObject can then be loaded from configuration using the ClassMethods. The objects
+# themselves will have an +id+ method as well as an initializer that sets attributes from a hash (see Attributes
+# for details).
 module ConfigObject
   
-  def self.included (base)
+  def self.included (base) #:nodoc:
     base.extend(ClassMethods)
     base.send :include, Attributes
   end
@@ -267,7 +270,7 @@ module ConfigObject
     end
   end
 
-  # This module adds an initializer the takes a hash
+  # This module adds an initializer that sets attributes from a hash.
   module Attributes
     # Create a new configuration object with the specified attributes. Attributes are set by
     # calling the setter method for each key if it exists. If there is no setter, an instance

@@ -1,10 +1,12 @@
+= ConfigObject
+
 The purpose of this gem is to have a standard way of configuring objects that is useable by other Ruby gems.
 
 == Features
 
-There are plenty of other gems that provide a configuration facility. This exists to provide a unique set of special features.
+There are plenty of other gems that provide a configuration facility. This gem exists to provide a unique set of special features.
 
-* Support for complex configuration object that can contain their own logic
+* Support for complex configuration objects that can contain their own logic
 * Support for multiple configuration objects of the same class
 * Support for different settings for different environments
 * Configuration can be done from Ruby code or YAML files
@@ -16,7 +18,7 @@ There are plenty of other gems that provide a configuration facility. This exist
 
 For the examples, we'll suppose we have some city data which is pretty static and doesn't change much.
 
-To use this library, we just need to declare a class that includes ConfigObject. Including this module will add an +id+ attribute and an +initialize+ method that sets attributes based on a hash. For each key in the hash, the initializer will look for a setter method and call it with the value. If there is no setter method, it will simply set an instance variable with the same name.
+To use this library, you just need to declare a class that includes ConfigObject. Including this module will add an +id+ attribute and an +initialize+ method that sets attributes from a hash. For each key in the hash, the initializer will look for a setter method and call it with the value. If there is no setter method, it will simply set an instance variable with the same name.
 
   class City
     include ConfigObject
@@ -32,8 +34,8 @@ To use this library, we just need to declare a class that includes ConfigObject.
       end
     end
     
-    # We can use the objects as more than simple data stores because we can add whatever
-    # logic we like to the class
+    # You can use the objects as more than simple data stores because you can add whatever
+    # logic you like to the class
     def size
       if population > 1000000
         :big
@@ -45,8 +47,8 @@ To use this library, we just need to declare a class that includes ConfigObject.
     end
   end
   
-  # The initializer behavior of setting attributes based on a hash is available in the module Attributes,
-  # so if we just want that behavior, we can include it in any module.
+  # The initializer behavior of setting attributes from a hash is available in the module Attributes.
+  # If we just want that behavior, we can include it in any module.
   class County
     include ConfigObject::Attributes
     attr_reader :name, :population
@@ -57,31 +59,33 @@ You can use a YAML file to load multiple cities like so:
   chicago:
     name: Chicago
     state: IL
-    population: 3000000
-    census_year: 2008
+    population: 2896016
+    census_year: 2000
     county:
       name: Cook
-      population: 5000000
+      population: 5294664
   
   st_louis:
     name: St. Louis
     state: MO
-    population: 1000000
+    population: 348189
     census_year: 2000
     county:
-      name: 
-      population: 
+      name: St. Louis
+      population: 1016315
 
   milwaukee:
     name: Milwaukee
     state: WI
-    population: 1000000
-    census_year: 2000
+    population: 604477
+    census_year: 2008
     county:
       name: Milwaukee
-      population: 
+      population: 953328
 
-This will give us three cities with ids of "chicago", "st_louis", and "milwaukee". If we want to reference them, we can call
+== Multiple Objects
+
+The above configuration will give us three cities with ids of "chicago", "st_louis", and "milwaukee". These object can be reference from the class:
 
   City[:chicago]
 
@@ -93,47 +97,118 @@ If we want all of them, we can call
 
   City.all
 
-If we want to find by something other than the id, we can also do that with a filter hash. The keys to the hash will be attributes to call and compare to values. You can go deep into the objects by delimiting attributes with a dot. If the attributes takes a single argument, it will be called with the match value, otherwise it will be compared to the match value. The match value can be a regular expression.
+If we want to find by something other than the id using a filter hash:
 
-  City.find(:name => "Chicago")            # Chicago
-  City.find(:name => /^St/)                # St. Louis
-  City.find("county.name" => 'Milwaukee')  # Milwaukee
-  City.all("county.population.>", 2000000) # Chicago and St. Louis
+  City.find(:name => "Chicago")
+  City.all(:state => "IL")
+
+You can match values using a regular expression:
+
+  City.find(:name => /^St/)
+  City.all(:state => /(IL)|(WI)/)
+
+You can use a dot syntax to specify a chain of attributes to call:
+
+  City.all("county.name" => 'Milwaukee')
+
+If an attribute in the filter takes a single argument, it will be called with the match value:
+
+  City.all("county.population.>", 2000000)
 
 The result of finding by a hash are cached for future lookups so their is no performance penalty for calling them multiple times.
 
 == Configuring
 
-As show above, you can configure a class with a YAML file. You can also specify multiple YAML files, a directory containing YAML files, or specify your configuration from Ruby code.
+As show above, you can configure a class with a YAML file. You can also specify multiple YAML files, a directory containing YAML files, or specify your configuration from Ruby code. When you specify multiple files, the setting in the later files will be merged into the settings in the earlier files in the list.
 
-[One YAML file]
-<tt>City.configuration_files = 'config/cities.yml'</tt>
+=== One YAML file
 
-[Multiple YAML files]
-<tt>City.configuration_files = 'config/cities.yml', 'config/production_cities.yml'</tt>
+  City.configuration_files = 'config/cities.yml'
 
-[Configure from code]
+=== Multiple YAML files
+
+  City.configuration_files = 'config/cities.yml', 'config/production_cities.yml'
+
+=== Configure from code
   City.configure({
     :chicago => {:name => "Chicago", :population => 3000000},
     :st_louis => {:name => "St. Louis", :population => 1000000}
   })
 
-== Default Values
+== Multiple Environments
 
-If you have some attributes that are mostly the same across all configuration objects, you can specify default values to DRY up you configuration. For instance in our city sample, we could specify a default census year and then only have to override the values for Chicago.
+Often, your configuration will require different settings in different environments. There are a couple of ways to handle that.
 
-  defaults:
-    census_year: 2000
+First, if you use multiple objects, like in our city example, you can specify multiple configuration files or blocks depending on the environment.
+
+For example, in a Rails application you could put your environment specific settings in separate files and call:
+
+  City.configuration_files = "config/cities.yml", "config/#{Rails.env}_cities.yml"
+
+=== development_cities.yml
   
   chicago:
-    census_year: 2008
+    host_name: chicago.local
+  
+  st_louis:
+    host_name: st-louis.local
+  
+  milwaukee:
+    host_name: milwaukee.local
+
+=== production_cities.yml
+
+  chicago:
+    host_name: chicago.example.com
+
+  st_louis:
+    host_name: st-louis.example.com
+
+  milwaukee:
+    host_name: milwaukee.example.com
+
+The other way to handle environment specific settings is if you only need one configuration object, use the environment name as the configuration id. For example, suppose we have a configuration class +HostConfig+ in a Rails application configured with this file:
+
+  development:
+    host: localhost
+    port: 5700
+    username: example
+    password: abc123
+  
+  production:
+    host: example.com
+    port: 5700
+    username: example
+    password: $SEddd1
+  
+To get the correct settings you could then reference:
+
+  HostConfig[Rails.env]
+
+== Default Values
+
+If you have some attributes that are mostly the same across all configuration objects, you can specify default values to DRY up you configuration. For instance we could rewrite our sample +HostConfig+ file as:
+
+  defaults:
+    port: 5700
+    username: example
+  
+  development:
+    host: localhost
+    password: abc123
+  
+  production:
+    host: example.com
+    password: $SEddd1
 
 Defaults can only be specified for root level hash. You can also specify defaults with the +set_defaults+ method.
 
 == Stable Values
 
-The attributes set on the configuration objects will be automatically frozen. This is to protect you from accidentally calling destructive methods on them (ie. << or gsub! on String) and changing the original values. These sorts of bugs can be awfully hard to find especially in a Rails application where they may only appear when the code gets to production.
+The attributes set on the configuration objects will be automatically frozen. This is to protect you from accidentally calling destructive methods on them (ie. <tt><<</tt> or +gsub!+ on String) and changing the original values. These sorts of bugs can be awfully hard to find especially in a Rails application where they may only appear when the code gets to production.
 
 == Reloading
 
-You can reload the configuration objects at any time with the +reload+ method. In addition, object can register themselves with the configuration class using +add_observer+ and specifying a callback. The callback method or block will be called whenever the configuration is changed so that persistent objects that use the configuration can reinitialize themselves with the new values.
+You can reload the configuration objects at any time with the +reload+ method.
+
+Objects can register themselves with the configuration class to be notified whenever the configuration is reloaded by calling +add_observer+ and specifying a callback. The callback method or block will be called whenever the configuration is changed so that persistent objects that use the configuration can reinitialize themselves with the new values.
